@@ -29,4 +29,6 @@ tests/_support/_generated
 #vagrant folder
 /.vagrant
 
+phpinfo.php
+docker-compose.yml
 config/db.php
