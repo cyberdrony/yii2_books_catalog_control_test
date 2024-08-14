@@ -134,7 +134,7 @@ class BookcatalogController extends Controller
      * @return array
      */
 
-    public function actionLogin() : string
+    public function actionLogin()
     {
         if (!Yii::$app->user->isGuest) {
             return $this->redirect( '/'.\Yii::$app->defaultRoute );

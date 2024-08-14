@@ -232,49 +232,37 @@ class AdminController extends Controller
 
         if ($this->book_form_model->load(Yii::$app->request->post())) {
 
-            // Это слово для поиска книги
             $searchWordsForm = Yii::$app->request->post();
 
             if( isset( $searchWordsForm['BookcatalogBookForm']['search_book']) && !empty($searchWordsForm['BookcatalogBookForm']['search_book']) ) {
                 $searchWords = $searchWordsForm['BookcatalogBookForm']['search_book'];
 
-                // Если только цифры, то пробуем искать по ID и ISBN
-                if( preg_match('/^\d+$/', $searchWords) ) {
-
-                    $res = $this->book_model->selectData([
-                        'table_name'    => 'books',
-                        'where_data'    => [ 
-                            'book_id' => $searchWords,
-                        ],
-                    ]);
-
-                    if( empty($res) ) {
-
-                        $res = $this->book_model->selectData([
-                            'table_name'    => 'books',
-                            'where_data'    => [ 
-                                'isbn' => $searchWords,
-                            ],
-                        ]);
-                    }
-                }
-                else {
-
-                    // Если слово - триграммный поиск
-                    $search = new SimpleTrigramSearch;
-                    $res = $search->search($searchWords);
-                }
+                // Запускаем поиск
+                $search = new SimpleTrigramSearch;
+                $res = $search->search($searchWords);
             }
         }
- 
+
         $booksData = $this->book_model->getBookFullData($res);
-          
+        
+        if( is_array($booksData) && !empty($booksData) ) {
+
+            foreach ($booksData as $i => $row) {
+                foreach ($row['authors'] as $author) {
+                    if(!isset($auth_list[$i])) {
+                        $auth_list[$i] = $author['author_full_name'];
+                    }
+                }
+            }
+
+            array_multisort($auth_list, SORT_ASC, $booksData);
+        }
+
         return $this->render('/admin/edit_book_search', [
             'model'         => $this->book_form_model,
             'book_list'     => $booksData,
             'search_words'  => $searchWords,
         ]);
- 
      }
 
 

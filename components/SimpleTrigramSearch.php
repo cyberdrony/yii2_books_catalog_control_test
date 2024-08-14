@@ -22,44 +22,78 @@ class SimpleTrigramSearch extends Component
     public function search($searchWord)
     {
         /**
-         * Ищем триграммы в БД. Возвращаем массив с ID книг.
+         * Ищем книги в БД. Возвращаем массив с ID книг.
          *
          * @param string $searchWord
          * @return array
          */
 
-        $res= [];
-        $trigrams = self::generateTrigrams($searchWord);
-        $triCounter = [];
-
-        // Идём по триграммам
-        foreach($trigrams as $triWord) {
-            $res = $this->bookModel->BookSearch( $triWord );
-
-            foreach($res as $resData) {
-
-                if( !isset($triCounter[$resData['book_id']]) ) {
-                    $triCounter[$resData['book_id']] = 0;
-                }
-    
-                // Фиксируем попадания
-                $triCounter[$resData['book_id']] += 1;
-            }
-        }
-
         $Out = [];
 
-        // Идём по найденным попаданиям
-        foreach($triCounter as $bookId => $input) {
+        // Если только цифры, то пробуем искать по ID и ISBN
+        if( preg_match('/^\d+$/', $searchWord) ) {
 
-            // Вычисляем коэффицент правильности совпадения
-            $len = floor(strlen($searchWord) / 2);
-            $prec = round(($len / $input), 2);
+            $res = $this->bookModel->selectData([
+                'table_name'    => 'books',
+                'where_data'    => [ 
+                    'book_id' => $searchWord,
+                ],
+            ])
+            ;
+            if( !empty($res) ) {
+                foreach($res as $resData) {
+                    $Out[] = $resData['book_id'];
+                }
+            }
+        }
+        elseif( preg_match('/^(?=(?:\D*\d){10}(?:(?:\D*\d){3})?$)[\d-]+$/', $searchWord) ) {
 
-            // Если коэф соответствует, то разрешаем к выдаче. Коэффицент должен быть не более 1.4. 
-            if( $prec <= 1.3 ) {
+            $res = $this->bookModel->selectData([
+                'table_name'    => 'books',
+                'where_data'    => [ 
+                    'isbn' => $searchWord,
+                ],
+            ]);
 
-                $Out[] = $bookId;
+            if( !empty($res) ) {
+                foreach($res as $resData) {
+
+                    $Out[] = $resData['book_id'];
+                }
+            }
+        }
+        else {
+
+            $trigrams = self::generateTrigrams($searchWord);
+            $triCounter = [];
+
+            // Идём по триграммам
+            foreach($trigrams as $triWord) {
+                $res = $this->bookModel->BookSearch( $triWord );
+
+                foreach($res as $resData) {
+
+                    if( !isset($triCounter[$resData['book_id']]) ) {
+                        $triCounter[$resData['book_id']] = 0;
+                    }
+        
+                    // Фиксируем попадания
+                    $triCounter[$resData['book_id']] += 1;
+                }
+            }
+
+            // Идём по найденным попаданиям
+            foreach($triCounter as $bookId => $input) {
+
+                // Вычисляем коэффицент правильности совпадения
+                $len = floor(strlen($searchWord) / 2);
+                $prec = round(($len / $input), 2);
+
+                // Если коэф соответствует, то разрешаем к выдаче. Коэффицент должен быть не более 1.4. 
+                if( $prec <= 1.3 ) {
+
+                    $Out[] = $bookId;
+                }
             }
         }
 

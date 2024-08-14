@@ -25,7 +25,6 @@
             'action' => ['/web/admin/edit_book_search','id' => '101'],
             'data' => ['pjax' => true], 
             'options' => ['enctype' => 'multipart/form-data'],
-            //'onchange' => 'this.form.submit()'
         ],
     ]);
 
@@ -54,9 +53,22 @@ if( isset($book_list) && !empty($book_list) ) {
     echo "<h5>Результат поиска</h5>";
 
     foreach($book_list as $booksData) {
-
         
-        echo '<a href="'.Url::to(['admin/create_book', 'edit_book_id' => $booksData['book_id'] ]).'">'.$booksData['authors_full_name'].'. "'.$booksData['title'].'"</a><br>';
+        $author_name = [];
+
+        if(is_array($booksData['authors'])) {
+            foreach($booksData['authors'] as $author) {
+                $author_name[] = $author['author_full_name'];
+            }
+        }
+
+        echo '<a href="'.Url::to(['admin/create_book', 'edit_book_id' => $booksData['book_id'] ]).'">';
+        
+        if( is_array($author_name) ) {
+            echo implode(', ', $author_name);
+        }
+
+        echo '. "'.$booksData['title'].'"</a><br>';
     }
 
 
